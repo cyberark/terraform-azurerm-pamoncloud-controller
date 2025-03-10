@@ -37,3 +37,5 @@ runcmd:
     cd /home/${vm_admin_user}
     unzip "${file_name}" -d PAMonCloud_BYOI
     rm -f "${file_name}"
+
+    echo "Setup complete!"
