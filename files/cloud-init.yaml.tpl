@@ -12,9 +12,12 @@ runcmd:
     python3 --version
 
     # Install Python packages
-    python3 -m pip install --upgrade "ansible==6.7.0" "ansible-core>=2.13.7" "pywinrm>=0.4.3"
+    python3 -m pip install --upgrade "ansible==6.7.0" "ansible-core>=2.13.7" "pywinrm>=0.4.3" "pypsrp>=0.5.0"
     ansible --version
 
+    # Install sshpass
+    apt install -y sshpass
+    
     # Install Packer
     export PACKER_VERSION="1.10.0"
     export PACKER_PACKAGE_NAME=$(printf "packer_%s_linux_amd64.zip" $PACKER_VERSION)
