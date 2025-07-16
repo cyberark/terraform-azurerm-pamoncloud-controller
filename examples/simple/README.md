@@ -38,7 +38,6 @@ Note that this example creates resources which can cost money (Azure VM, for exa
 | Name | Description | Type | Default |
 |------|-------------|------|---------|
 | <a name="input_allowed_ssh_cidr"></a> [allowed\_ssh\_cidr](#input\_allowed\_ssh\_cidr) | CIDR block allowed for SSH inbound access | `string` | `"0.0.0.0/0"` |
-| <a name="input_vm_admin_password"></a> [vm\_admin\_password](#input\_vm\_admin\_password) | Password for VM administrator user | `string` | n/a |
 | <a name="input_storage_account_id"></a> [storage\_account\_id](#input\_storage\_account\_id) | Resource ID of the storage account containing the BYOI zip | `string` | n/a |
 | <a name="input_container_name"></a> [container\_name](#input\_container\_name) | Name of the storage account container with BYOI zip | `string` | n/a |
 | <a name="input_file_name"></a> [file\_name](#input\_file\_name) | BYOI zip file name to be downloaded from Azure storage account | `string` | `"PAM_Self-Hosted_on_Azure.zip"` |

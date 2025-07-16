@@ -1,3 +1,7 @@
+locals {
+  role_assignment_scope = split("/resourceGroups/", azurerm_resource_group.controller_rg.id)[0]
+}
+
 #### Set provider
 provider "azurerm" {
   features {}
@@ -55,8 +59,8 @@ resource "azurerm_user_assigned_identity" "controller_identity" {
 
 #### Create role assignment
 resource "azurerm_role_assignment" "storage_account_role_assignment" {
-  scope                = var.storage_account_id
-  role_definition_name = "Storage Account Contributor"
+  scope                = local.role_assignment_scope
+  role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.controller_identity.principal_id
 
   depends_on = [resource.azurerm_user_assigned_identity.controller_identity]
@@ -83,6 +87,19 @@ resource "azurerm_network_interface" "controller_network_interface" {
   }
 
   depends_on = [resource.azurerm_public_ip.controller_public_ip]
+}
+
+# Generate SSH key pair for VM authentication
+resource "tls_private_key" "controller_vm_ssh_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+# Save the private key as a file
+resource "local_file" "controller_vm_private_key" {
+  content         = tls_private_key.controller_vm_ssh_key.private_key_pem
+  filename        = "${path.cwd}/controller_vm_private_key.pem"
+  file_permission = "0600"
 }
 
 resource "azurerm_virtual_machine" "controller_vm" {
@@ -113,10 +130,17 @@ resource "azurerm_virtual_machine" "controller_vm" {
     managed_disk_type = "Premium_LRS"
   }
 
+  os_profile_linux_config {
+    disable_password_authentication = true
+    ssh_keys {
+      key_data = tls_private_key.controller_vm_ssh_key.public_key_openssh
+      path     = "/home/${var.vm_admin_user}/.ssh/authorized_keys"
+    }
+  }
+
   os_profile {
     computer_name  = "controller"
     admin_username = var.vm_admin_user
-    admin_password = var.vm_admin_password
 
     # Run cloud-init script
     custom_data = base64encode(templatefile("${path.module}/files/cloud-init.yaml.tpl", {
@@ -125,10 +149,6 @@ resource "azurerm_virtual_machine" "controller_vm" {
       container_name       = var.container_name
       file_name            = var.file_name
     }))
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = false
   }
 
   tags = {

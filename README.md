@@ -25,7 +25,6 @@ module "pamoncloud_controller" {
   subnet_cidr         = "172.31.1.0/24"
   allowed_ssh_cidr    = "3.5.7.9/32"
   vm_admin_user       = "azureadmin"
-  vm_admin_password   = "VMAdminPassword"
   vm_size             = "Standard_B2s"
   storage_account_id  = "/subscriptions/12345678-1234-5678-1234-567812345678/resourceGroups/PAM-Storage/providers/Microsoft.Storage/storageAccounts/storageaccountname"
   container_name      = "ContainerName"
@@ -64,7 +63,6 @@ No modules.
 | <a name="input_subnet_cidr"></a> [subnet\_cidr](#input\_subnet\_cidr) | CIDR block for the subnet | `string` | `"10.0.1.0/24"` |
 | <a name="input_allowed_ssh_cidr"></a> [allowed\_ssh\_cidr](#input\_allowed\_ssh\_cidr) | CIDR block allowed for SSH inbound access | `string` | `"0.0.0.0/0"` |
 | <a name="input_vm_admin_user"></a> [vm\_admin\_user](#input\_vm\_admin\_user) | Admin user for the VM | `string` | `"azureadmin"` |
-| <a name="input_vm_admin_password"></a> [vm\_admin\_password](#input\_vm\_admin\_password) | Password for VM admin user | `string` | n/a |
 | <a name="input_vm_size"></a> [vm\_size](#input\_vm\_size) | VM size for the controller | `string` | `"Standard_D2s_v3"` |
 | <a name="input_storage_account_id"></a> [storage\_account\_id](#input\_storage\_account\_id) | Resource ID of the storage account containing the BYOI zip | `string` | n/a |
 | <a name="input_container_name"></a> [container\_name](#input\_container\_name) | Name of the storage account container with BYOI zip | `string` | n/a |

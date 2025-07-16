@@ -17,7 +17,7 @@ runcmd:
 
     # Install sshpass
     apt install -y sshpass
-    
+
     # Install Packer
     export PACKER_VERSION="1.10.0"
     export PACKER_PACKAGE_NAME=$(printf "packer_%s_linux_amd64.zip" $PACKER_VERSION)

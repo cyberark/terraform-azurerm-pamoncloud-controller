@@ -4,12 +4,6 @@ variable "allowed_ssh_cidr" {
   default     = "0.0.0.0/0" # Change CIDR scope for better security
 }
 
-variable "vm_admin_password" {
-  description = "Admin password for the VM"
-  type        = string
-  sensitive   = true
-}
-
 variable "storage_account_id" {
   description = "Resource ID of the storage account containing the BYOI zip"
   type        = string

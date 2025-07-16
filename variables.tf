@@ -34,12 +34,6 @@ variable "vm_admin_user" {
   default     = "azureadmin"
 }
 
-variable "vm_admin_password" {
-  description = "Admin password for the VM"
-  type        = string
-  sensitive   = true
-}
-
 variable "vm_size" {
   description = "The size of the VM"
   type        = string
