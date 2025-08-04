@@ -9,3 +9,7 @@ output "vm_name" {
 output "vm_public_ip" {
   value = resource.azurerm_public_ip.controller_public_ip.ip_address
 }
+
+output "vm_admin_user" {
+  value = var.vm_admin_user
+}
