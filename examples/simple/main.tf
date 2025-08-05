@@ -23,7 +23,6 @@ module "pamoncloud_controller" {
   subnet_cidr         = local.subnet_cidr
   allowed_ssh_cidr    = var.allowed_ssh_cidr
   vm_admin_user       = local.vm_admin_user
-  vm_admin_password   = var.vm_admin_password
   vm_size             = local.vm_size
   storage_account_id  = var.storage_account_id
   container_name      = var.container_name
