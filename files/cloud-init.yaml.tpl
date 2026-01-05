@@ -19,7 +19,7 @@ runcmd:
     apt install -y sshpass
 
     # Install Packer
-    export PACKER_VERSION="1.10.0"
+    export PACKER_VERSION="1.13.1"
     export PACKER_PACKAGE_NAME=$(printf "packer_%s_linux_amd64.zip" $PACKER_VERSION)
     curl -LO "https://releases.hashicorp.com/packer/$PACKER_VERSION/$PACKER_PACKAGE_NAME"
     unzip "$PACKER_PACKAGE_NAME" -d /usr/local/bin/
