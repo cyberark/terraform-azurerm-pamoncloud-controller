@@ -32,9 +32,21 @@ variable "subnet_cidr" {
 }
 
 variable "allowed_ssh_cidr" {
-  description = "CIDR block allowed for SSH inbound access"
-  type        = string
-  default     = "0.0.0.0/0" # Change CIDR scope for better security
+  description = "List of CIDR blocks allowed for SSH inbound access to the controller VM. Must NOT include 0.0.0.0/0 or ::/0."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.allowed_ssh_cidr) > 0
+    error_message = "At least one CIDR must be supplied."
+  }
+  validation {
+    condition     = alltrue([for cidr in var.allowed_ssh_cidr : can(cidrnetmask(cidr))])
+    error_message = "Every entry must be a valid IPv4 CIDR (e.g. X.X.X.X/32)."
+  }
+  validation {
+    condition     = !contains(var.allowed_ssh_cidr, "0.0.0.0/0") && !contains(var.allowed_ssh_cidr, "::/0")
+    error_message = "Refusing to open SSH to the world: 0.0.0.0/0 / ::/0 are not allowed. Specify operator/jumpbox CIDR(s)."
+  }
 }
 
 variable "vm_admin_user" {

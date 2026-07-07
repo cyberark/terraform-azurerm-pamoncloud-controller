@@ -1,11 +1,9 @@
-locals {
-  role_assignment_scope = split("/resourceGroups/", azurerm_resource_group.controller_rg.id)[0]
-}
-
 #### Set provider
 provider "azurerm" {
   features {}
 }
+
+data "azurerm_subscription" "current" {}
 
 #### Create RG and related objects
 resource "azurerm_resource_group" "controller_rg" {
@@ -26,7 +24,7 @@ resource "azurerm_network_security_group" "controller_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = var.allowed_ssh_cidr
+    source_address_prefixes    = var.allowed_ssh_cidr
     destination_address_prefix = "*"
   }
 
@@ -57,13 +55,98 @@ resource "azurerm_user_assigned_identity" "controller_identity" {
   location            = azurerm_resource_group.controller_rg.location
 }
 
-#### Create role assignment
-resource "azurerm_role_assignment" "storage_account_role_assignment" {
-  scope                = local.role_assignment_scope
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.controller_identity.principal_id
+#### Create role definition + assignments
+# Custom role: minimum actions required by Packer's azure-arm builder for the BYOI image-build flow. 
+# Subscription-scope is necessary because Packer auto-creates its temporary build resource group.
+resource "azurerm_role_definition" "controller_packer_builder" {
+  name        = "PAMonCloud-Controller-PackerBuilder-${azurerm_resource_group.controller_rg.name}"
+  scope       = data.azurerm_subscription.current.id
+  description = "Minimum permissions for the PAMonCloud BYOI controller managed identity to run Packer's azure-arm builder."
 
-  depends_on = [resource.azurerm_user_assigned_identity.controller_identity]
+  permissions {
+    actions = [
+      # Compute - VM lifecycle (capture/generalize used by Packer to convert VM to image)
+      "Microsoft.Compute/virtualMachines/read",
+      "Microsoft.Compute/virtualMachines/write",
+      "Microsoft.Compute/virtualMachines/delete",
+      "Microsoft.Compute/virtualMachines/powerOff/action",
+      "Microsoft.Compute/virtualMachines/deallocate/action",
+      "Microsoft.Compute/virtualMachines/generalize/action",
+      "Microsoft.Compute/virtualMachines/capture/action",
+      "Microsoft.Compute/virtualMachines/extensions/read",
+      "Microsoft.Compute/virtualMachines/extensions/write",
+      "Microsoft.Compute/virtualMachines/extensions/delete",
+      "Microsoft.Compute/virtualMachines/vmSizes/read",
+      # Compute - disks (OS + data disks per disk_additional_size)
+      "Microsoft.Compute/disks/read",
+      "Microsoft.Compute/disks/write",
+      "Microsoft.Compute/disks/delete",
+      # Compute - snapshots (used when managed_image_*_snapshot_* vars are non-empty)
+      "Microsoft.Compute/snapshots/read",
+      "Microsoft.Compute/snapshots/write",
+      "Microsoft.Compute/snapshots/delete",
+      # Compute - managed images
+      "Microsoft.Compute/images/read",
+      "Microsoft.Compute/images/write",
+      "Microsoft.Compute/images/delete",
+      # Network - all artifacts the azure-arm builder provisions in the temp RG
+      "Microsoft.Network/networkInterfaces/read",
+      "Microsoft.Network/networkInterfaces/write",
+      "Microsoft.Network/networkInterfaces/delete",
+      "Microsoft.Network/networkInterfaces/join/action",
+      "Microsoft.Network/networkSecurityGroups/read",
+      "Microsoft.Network/networkSecurityGroups/write",
+      "Microsoft.Network/networkSecurityGroups/delete",
+      "Microsoft.Network/networkSecurityGroups/join/action",
+      "Microsoft.Network/publicIPAddresses/read",
+      "Microsoft.Network/publicIPAddresses/write",
+      "Microsoft.Network/publicIPAddresses/delete",
+      "Microsoft.Network/publicIPAddresses/join/action",
+      "Microsoft.Network/virtualNetworks/read",
+      "Microsoft.Network/virtualNetworks/write",
+      "Microsoft.Network/virtualNetworks/delete",
+      "Microsoft.Network/virtualNetworks/subnets/read",
+      "Microsoft.Network/virtualNetworks/subnets/join/action",
+      "Microsoft.Network/loadBalancers/read",
+      "Microsoft.Network/loadBalancers/write",
+      "Microsoft.Network/loadBalancers/delete",
+      # KeyVault - REQUIRED for Windows component builds (vault, pvwa, cpm, psm)
+      # Packer's azure-arm builder auto-provisions a temp Key Vault to deliver the WinRM cert
+      "Microsoft.KeyVault/vaults/read",
+      "Microsoft.KeyVault/vaults/write",
+      "Microsoft.KeyVault/vaults/delete",
+      "Microsoft.KeyVault/vaults/deploy/action",
+      "Microsoft.KeyVault/vaults/secrets/read",
+      "Microsoft.KeyVault/vaults/secrets/write",
+      "Microsoft.KeyVault/vaults/accessPolicies/write",
+      # Resources - ARM deployment lifecycle (Packer drives provisioning via deployments)
+      "Microsoft.Resources/deployments/read",
+      "Microsoft.Resources/deployments/write",
+      "Microsoft.Resources/deployments/delete",
+      "Microsoft.Resources/deployments/cancel/action",
+      "Microsoft.Resources/deployments/validate/action",
+      "Microsoft.Resources/deployments/operationStatuses/read",
+      # Resources - resource groups (auto-created temp RG for the build, image RG already exists)
+      "Microsoft.Resources/subscriptions/resourceGroups/read",
+      "Microsoft.Resources/subscriptions/resourceGroups/write",
+      "Microsoft.Resources/subscriptions/resourceGroups/delete",
+    ]
+    not_actions = []
+  }
+
+  assignable_scopes = [data.azurerm_subscription.current.id]
+}
+
+resource "azurerm_role_assignment" "controller_packer_builder" {
+  scope              = data.azurerm_subscription.current.id
+  role_definition_id = azurerm_role_definition.controller_packer_builder.role_definition_resource_id
+  principal_id       = azurerm_user_assigned_identity.controller_identity.principal_id
+}
+
+resource "azurerm_role_assignment" "controller_blob_reader" {
+  scope                = "${var.storage_account_id}/blobServices/default/containers/${var.container_name}"
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_user_assigned_identity.controller_identity.principal_id
 }
 
 #### Create VM resources
@@ -155,5 +238,8 @@ resource "azurerm_virtual_machine" "controller_vm" {
     Name = "PAMonCloud-BYOI-Controller"
   }
 
-  depends_on = [resource.azurerm_role_assignment.storage_account_role_assignment]
+  depends_on = [
+    azurerm_role_assignment.controller_packer_builder,
+    azurerm_role_assignment.controller_blob_reader,
+  ]
 }

@@ -19,7 +19,7 @@ Note that this example creates resources which can cost money (Azure VM, for exa
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](https://github.com/hashicorp/terraform) | 1.9.8 |
+| <a name="requirement_terraform"></a> [terraform](https://github.com/hashicorp/terraform) | >= 1.9.8, <= 1.13.5 |
 
 ## Providers
 
@@ -37,7 +37,7 @@ Note that this example creates resources which can cost money (Azure VM, for exa
 
 | Name | Description | Type | Default |
 |------|-------------|------|---------|
-| <a name="input_allowed_ssh_cidr"></a> [allowed\_ssh\_cidr](#input\_allowed\_ssh\_cidr) | CIDR block allowed for SSH inbound access | `string` | `"0.0.0.0/0"` |
+| <a name="input_allowed_ssh_cidr"></a> [allowed\_ssh\_cidr](#input\_allowed\_ssh\_cidr) | List of CIDR blocks allowed for SSH inbound access to the controller VM. Must NOT include 0.0.0.0/0 or ::/0. | `list(string)` | n/a |
 | <a name="input_storage_account_id"></a> [storage\_account\_id](#input\_storage\_account\_id) | Resource ID of the storage account containing the BYOI zip | `string` | n/a |
 | <a name="input_container_name"></a> [container\_name](#input\_container\_name) | Name of the storage account container with BYOI zip | `string` | n/a |
 | <a name="input_file_name"></a> [file\_name](#input\_file\_name) | BYOI zip file name to be downloaded from Azure storage account | `string` | `"PAM_Self-Hosted_on_Azure.zip"` |
@@ -63,10 +63,12 @@ For list objects, you can use `terraform state list` to get all objects within t
 | `azurerm_virtual_machine.controller_vm` | The virtual machine for the controller.        |
 
 #### **User Assigned Identity**
-| Resource                                                    | Description                                                 |
-|-------------------------------------------------------------|-------------------------------------------------------------|
-| `azurerm_user_assigned_identity.controller_identity`        | Identity to manage VM permissions.                          |
-| `azurerm_role_assignment.storage_account_role_assignment`   | Assignment of the identity.                                 |
+| Resource                                                    | Description                                                                                                |
+|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `azurerm_user_assigned_identity.controller_identity`        | User-assigned managed identity attached to the controller VM.                                              |
+| `azurerm_role_definition.controller_packer_builder`         | Custom role with the minimum actions required by Packer's azure-arm builder.                               |
+| `azurerm_role_assignment.controller_packer_builder`         | Assigns the custom Packer-builder role to the controller identity at subscription scope.                   |
+| `azurerm_role_assignment.controller_byoi_blob_reader`       | Grants `Storage Blob Data Reader` to the controller identity, scoped to the BYOI container only.           |
 
 #### **Networking Resources**
 | Resource                                                   | Description                                                 |

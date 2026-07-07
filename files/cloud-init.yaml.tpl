@@ -1,44 +1,124 @@
 #cloud-config
+
+# Install Azure CLI and Packer from their vendors' signed apt repositories.
+# The signing keys are embedded below; cloud-init writes them to a per-source keyring
+# under /etc/apt/keyrings/ and substitutes the path into 'signed-by=$KEY_FILE'.
+#
+# Microsoft (Release signing) key fingerprint:
+#   BC52 8686 B50D 79E3 39D3 721C EB3E 94AD BE12 29CF
+# HashiCorp Security (Package Signing) key fingerprint:
+#   798A EC65 4E5C 1542 8C8E 42EE AA16 FCBC A621 E701
+apt:
+  sources:
+    azure-cli.list:
+      source: "deb [arch=amd64 signed-by=$KEY_FILE] https://packages.microsoft.com/repos/azure-cli/ jammy main"
+      key: |
+        -----BEGIN PGP PUBLIC KEY BLOCK-----
+        Version: BSN Pgp v1.1.0.0
+
+        mQENBFYxWIwBCADAKoZhZlJxGNGWzqV+1OG1xiQeoowKhssGAKvd+buXCGISZJwT
+        LXZqIcIiLP7pqdcZWtE9bSc7yBY2MalDp9Liu0KekywQ6VVX1T72NPf5Ev6x6DLV
+        7aVWsCzUAF+eb7DC9fPuFLEdxmOEYoPjzrQ7cCnSV4JQxAqhU4T6OjbvRazGl3ag
+        OeizPXmRljMtUUttHQZnRhtlzkmwIrUivbfFPD+fEoHJ1+uIdfOzZX8/oKHKLe2j
+        H632kvsNzJFlROVvGLYAk2WRcLu+RjjggixhwiB+Mu/A8Tf4V6b+YppS44q8EvVr
+        M+QvY7LNSOffSO6Slsy9oisGTdfE39nC7pVRABEBAAG0N01pY3Jvc29mdCAoUmVs
+        ZWFzZSBzaWduaW5nKSA8Z3Bnc2VjdXJpdHlAbWljcm9zb2Z0LmNvbT6JATQEEwEI
+        AB4FAlYxWIwCGwMGCwkIBwMCAxUIAwMWAgECHgECF4AACgkQ6z6Urb4SKc+P9gf/
+        diY2900wvWEgV7iMgrtGzx79W/PbwWiOkKoD9sdzhARXWiP8Q5teL/t5TUH6TZ3B
+        ENboDjwr705jLLPwuEDtPI9jz4kvdT86JwwG6N8gnWM8Ldi56SdJEtXrzwtlB/Fe
+        6tyfMT1E/PrJfgALUG9MWTIJkc0GhRJoyPpGZ6YWSLGXnk4c0HltYKDFR7q4wtI8
+        4cBu4mjZHZbxIO6r8Cci+xxuJkpOTIpr4pdpQKpECM6x5SaT2gVnscbN0PE19KK9
+        nPsBxyK4wW0AvAhed2qldBPTipgzPhqB2gu0jSryil95bKrSmlYJd1Y1XfNHno5D
+        xfn5JwgySBIdWWvtOI05gw==
+        =zPfd
+        -----END PGP PUBLIC KEY BLOCK-----
+    hashicorp.list:
+      source: "deb [arch=amd64 signed-by=$KEY_FILE] https://apt.releases.hashicorp.com jammy main"
+      key: |
+        -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+        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
+        =FdUF
+        -----END PGP PUBLIC KEY BLOCK-----
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - curl
+  - unzip
+  - jq
+  - python3-pip
+  - sshpass
+  - azure-cli
+  - [packer, "1.13.1-1"]
+
 runcmd:
-  - |
-    # Update packages
-    apt update -y
-
-    # Install prerequisites
-    apt install -y curl unzip jq
-
-    # Install Python
-    apt install -y python3-pip
-    python3 --version
-
-    # Install Python packages
-    python3 -m pip install --upgrade "ansible==6.7.0" "ansible-core>=2.13.7" "pywinrm>=0.4.3" "pypsrp>=0.5.0"
-    ansible --version
-
-    # Install sshpass
-    apt install -y sshpass
-
-    # Install Packer
-    export PACKER_VERSION="1.13.1"
-    export PACKER_PACKAGE_NAME=$(printf "packer_%s_linux_amd64.zip" $PACKER_VERSION)
-    curl -LO "https://releases.hashicorp.com/packer/$PACKER_VERSION/$PACKER_PACKAGE_NAME"
-    unzip "$PACKER_PACKAGE_NAME" -d /usr/local/bin/
-    rm -f "$PACKER_PACKAGE_NAME"
-    packer version
-
-    # Install Azure CLI
-    curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-    az --version
-
-    # Authenticate to Azure using Managed Identity
-    az login --identity
-
-    # Download the BYOI ZIP file from Azure Storage Account
-    az storage blob download --account-name "${storage_account_name}" --container-name "${container_name}" --name "${file_name}" --file "/home/${vm_admin_user}/${file_name}"
-
-    # Unzip downloaded file and clean up
-    cd /home/${vm_admin_user}
-    unzip "${file_name}" -d PAMonCloud_BYOI
-    rm -f "${file_name}"
-
-    echo "Setup complete!"
+  - apt-mark hold packer
+  - python3 -m pip install --upgrade "ansible==6.7.0" "ansible-core>=2.13.7" "pywinrm>=0.4.3" "pypsrp>=0.5.0"
+  - ansible --version
+  - az --version
+  - packer version
+  - az login --identity
+  - az storage blob download --account-name "${storage_account_name}" --container-name "${container_name}" --name "${file_name}" --file "/home/${vm_admin_user}/${file_name}" --auth-mode login
+  - su - ${vm_admin_user} -c 'cd ~ && unzip "${file_name}" -d PAMonCloud_BYOI && rm -f "${file_name}"'
+  - echo "Setup complete!"
